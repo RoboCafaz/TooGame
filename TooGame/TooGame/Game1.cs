@@ -8,6 +8,8 @@ using Microsoft.Xna.Framework.GamerServices;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
+using TooGame.MapEngine;
+using System.Threading;
 
 namespace TooGame
 {
@@ -18,6 +20,8 @@ namespace TooGame
     {
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
+        Texture2D pixel;
+        GenSettings settings;
 
         public Game1()
         {
@@ -36,6 +40,17 @@ namespace TooGame
             // TODO: Add your initialization logic here
 
             base.Initialize();
+            MapType.Initialize();
+
+            MapType type;
+            MapType.MapTypes.TryGetValue("Grass", out type);
+            MapGenerator.CreateMap(256, 256, type, 3, true, 50000, 50);
+            Thread popupThread = new Thread(new ThreadStart(delegate()
+            {
+                settings = new GenSettings();
+                settings.ShowDialog();
+            }));
+            popupThread.Start();
         }
 
         /// <summary>
@@ -48,6 +63,7 @@ namespace TooGame
             spriteBatch = new SpriteBatch(GraphicsDevice);
 
             // TODO: use this.Content to load your game content here
+            pixel = Content.Load<Texture2D>("pixel");
         }
 
         /// <summary>
@@ -83,7 +99,39 @@ namespace TooGame
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
-            // TODO: Add your drawing code here
+            TileType[,] world = MapGenerator.GetMap();
+            int width = world.GetLength(0);
+            int height = world.GetLength(1);
+
+            spriteBatch.Begin();
+            for (int i = 0; i < width; i++)
+            {
+                for (int j = 0; j < height; j++)
+                {
+                    Color color = Color.Black;
+                    switch(world[i,j])
+                    {
+                        case TileType.GRASS:
+                            color = Color.DarkGreen;
+                            break;
+                        case TileType.WATER:
+                            color = Color.Blue;
+                            break;
+                        case TileType.SAND:
+                            color = Color.LightCoral;
+                            break;
+                        case TileType.SNOW:
+                            color = Color.LightCyan;
+                            break;
+                        case TileType.SPACE:
+                        default:
+                            color = Color.Black;
+                            break;
+                    }
+                    spriteBatch.Draw(pixel, new Rectangle(i * 5, j * 5, 5, 5), color);
+                }
+            }
+            spriteBatch.End();
 
             base.Draw(gameTime);
         }
